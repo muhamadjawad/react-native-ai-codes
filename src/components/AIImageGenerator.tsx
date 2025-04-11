@@ -1,7 +1,26 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, Image, StyleSheet, ActivityIndicator, KeyboardAvoidingView, ScrollView, Platform } from 'react-native';
+import {
+    View,
+    Text,
+    TextInput,
+    TouchableOpacity,
+    Image,
+    StyleSheet,
+    ActivityIndicator,
+    ScrollView,
+    KeyboardAvoidingView,
+    Platform,
+    Alert,
+    PermissionsAndroid,
+    Linking
+} from 'react-native';
 import colors from '../utils/colors';
 import { STABILITY_API_KEY } from '@env';
+import RNFS from 'react-native-fs';
+import {
+    CameraRoll,
+
+} from '@react-native-camera-roll/camera-roll';
 
 const AIImageGenerator = () => {
     const [prompt, setPrompt] = useState('');
@@ -58,6 +77,70 @@ const AIImageGenerator = () => {
         }
     };
 
+    const downloadImage = async () => {
+        try {
+            if (Platform.OS === 'android') {
+                // Check Android version
+                const apiLevel = Platform.Version;
+
+                let permissions;
+                if (apiLevel >= 33) { // Android 13+
+                    permissions = [
+                        PermissionsAndroid.PERMISSIONS.READ_MEDIA_IMAGES,
+                    ];
+                } else { // Android 10-12
+                    permissions = [
+                        PermissionsAndroid.PERMISSIONS.READ_EXTERNAL_STORAGE,
+                        PermissionsAndroid.PERMISSIONS.WRITE_EXTERNAL_STORAGE,
+                    ];
+                }
+
+                const granted = await PermissionsAndroid.requestMultiple(permissions);
+
+                const allGranted = Object.values(granted).every(
+                    status => status === PermissionsAndroid.RESULTS.GRANTED
+                );
+
+                if (!allGranted) {
+                    Alert.alert(
+                        'Permission Needed',
+                        'Please allow media access to save images',
+                        [
+                            {
+                                text: 'Open Settings',
+                                onPress: () => Linking.openSettings()
+                            },
+                            { text: 'Cancel' }
+                        ]
+                    );
+                    return;
+                }
+            }
+
+            // Save image implementation
+            const timestamp = new Date().getTime();
+            const fileName = `AI_Image_${timestamp}.jpg`;
+            const base64Data = imageUrl.split(',')[1];
+
+            if (Platform.OS === 'android') {
+                const filePath = `${RNFS.PicturesDirectoryPath}/${fileName}`;
+                await RNFS.writeFile(filePath, base64Data, 'base64');
+                await CameraRoll.save(`file://${filePath}`, { type: 'photo' });
+            } else {
+                const filePath = `${RNFS.CachesDirectoryPath}/${fileName}`;
+                await RNFS.writeFile(filePath, base64Data, 'base64');
+                await CameraRoll.save(`file://${filePath}`, { type: 'photo' });
+            }
+
+            Alert.alert('Success', 'Image saved to gallery!');
+
+        } catch (error) {
+            console.error('Save failed:', error);
+            Alert.alert('Error', 'Failed to save image. Please try again.');
+        }
+    };
+
+
     return (
         <KeyboardAvoidingView
             behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
@@ -95,11 +178,19 @@ const AIImageGenerator = () => {
                     </TouchableOpacity>
 
                     {imageUrl ? (
-                        <Image
-                            source={{ uri: imageUrl }}
-                            style={styles.image}
-                            resizeMode="contain"
-                        />
+                        <View style={styles.imageWrapper}>
+                            <Image
+                                source={{ uri: imageUrl }}
+                                style={styles.image}
+                                resizeMode="contain"
+                            />
+                            <TouchableOpacity
+                                style={styles.downloadButton}
+                                onPress={downloadImage}
+                            >
+                                <Text style={styles.downloadButtonText}>↓</Text>
+                            </TouchableOpacity>
+                        </View>
                     ) : null}
                 </View>
             </ScrollView>
@@ -161,6 +252,27 @@ const styles = StyleSheet.create({
         color: colors.error,
         marginBottom: 15,
         textAlign: 'center',
+    },
+
+    imageWrapper: {
+        position: 'relative',
+    },
+    downloadButton: {
+        position: 'absolute',
+        top: 10,
+        right: 10,
+        backgroundColor: colors.primary,
+        width: 40,
+        height: 40,
+        borderRadius: 20,
+        justifyContent: 'center',
+        alignItems: 'center',
+        opacity: 0.8,
+    },
+    downloadButtonText: {
+        color: colors.white,
+        fontSize: 20,
+        fontWeight: 'bold',
     },
 });
 
