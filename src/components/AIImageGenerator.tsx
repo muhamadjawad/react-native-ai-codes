@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, Image, StyleSheet, ActivityIndicator } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, Image, StyleSheet, ActivityIndicator, KeyboardAvoidingView, ScrollView, Platform } from 'react-native';
 import colors from '../utils/colors';
 import { STABILITY_API_KEY } from '@env';
 
@@ -29,12 +29,16 @@ const AIImageGenerator = () => {
                         'Accept': 'application/json',
                     },
                     body: JSON.stringify({
-                        text_prompts: [{ text: prompt }],
-                        cfg_scale: 7,
+                        text_prompts: [{
+                            text: prompt,
+                            weight: 1.0 // Between 0.1-2.0 (higher = more emphasis)
+                        }],
+                        cfg_scale: 8, // Creativity (7-12)
                         height: 1024,
                         width: 1024,
-                        steps: 30,
-                        samples: 1,
+                        steps: 30, // Quality (20-50)
+                        sampler: "K_DPMPP_2M", // Try "K_EULER" for faster results
+                        style_preset: "cinematic" // Try "digital-art" or "fantasy-art"
                     }),
                 }
             );
@@ -55,57 +59,67 @@ const AIImageGenerator = () => {
     };
 
     return (
-        <View style={styles.container}>
-            <Text style={styles.title}>AI Image Generator</Text>
-
-            <TextInput
-                style={styles.input}
-                placeholder="Describe the image you want..."
-                placeholderTextColor={colors.placeholder}
-                value={prompt}
-                onChangeText={setPrompt}
-                multiline
-            />
-
-            {error ? <Text style={styles.error}>{error}</Text> : null}
-
-            <TouchableOpacity
-                style={styles.button}
-                onPress={generateImage}
-                disabled={loading}
+        <KeyboardAvoidingView
+            behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+            style={{ flex: 1 }}
+        >
+            <ScrollView
+                contentContainerStyle={styles.scrollContainer}
+                keyboardShouldPersistTaps="handled"
             >
-                {loading ? (
-                    <ActivityIndicator color={colors.white} />
-                ) : (
-                    <Text style={styles.buttonText}>Generate Image</Text>
-                )}
-            </TouchableOpacity>
+                <View style={styles.container}>
+                    <Text style={styles.title}>AI Image Generator</Text>
 
-            {imageUrl ? (
-                <Image
-                    source={{ uri: imageUrl }}
-                    style={styles.image}
-                    resizeMode="contain"
-                />
-            ) : null}
-        </View>
+                    <TextInput
+                        style={styles.input}
+                        placeholder="Describe the image you want..."
+                        placeholderTextColor={colors.placeholder}
+                        value={prompt}
+                        onChangeText={setPrompt}
+                        multiline
+                        scrollEnabled={false} // Let ScrollView handle scrolling
+                    />
+
+                    {error ? <Text style={styles.error}>{error}</Text> : null}
+
+                    <TouchableOpacity
+                        style={styles.button}
+                        onPress={generateImage}
+                        disabled={loading}
+                    >
+                        {loading ? (
+                            <ActivityIndicator color={colors.white} />
+                        ) : (
+                            <Text style={styles.buttonText}>Generate Image</Text>
+                        )}
+                    </TouchableOpacity>
+
+                    {imageUrl ? (
+                        <Image
+                            source={{ uri: imageUrl }}
+                            style={styles.image}
+                            resizeMode="contain"
+                        />
+                    ) : null}
+                </View>
+            </ScrollView>
+        </KeyboardAvoidingView>
     );
 };
 
 // Keep your existing styles
 const styles = StyleSheet.create({
+
+    scrollContainer: {
+        flexGrow: 1,
+        paddingBottom: 20, // Add some bottom padding
+    },
     container: {
         flex: 1,
         padding: 20,
         backgroundColor: colors.background,
     },
-    title: {
-        fontSize: 24,
-        fontWeight: 'bold',
-        color: colors.primary,
-        marginBottom: 20,
-        textAlign: 'center',
-    },
+    // ... (keep all your existing styles) ...
     input: {
         backgroundColor: colors.inputBg,
         color: colors.text,
@@ -114,7 +128,15 @@ const styles = StyleSheet.create({
         marginBottom: 15,
         fontSize: 16,
         minHeight: 100,
+        maxHeight: 200, // Limit maximum height before scrolling
         textAlignVertical: 'top',
+    },
+    title: {
+        fontSize: 24,
+        fontWeight: 'bold',
+        color: colors.primary,
+        marginBottom: 20,
+        textAlign: 'center',
     },
     button: {
         backgroundColor: colors.primary,
