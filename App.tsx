@@ -1,12 +1,18 @@
 // App.tsx
 import React from 'react';
-import { SafeAreaView, StyleSheet } from 'react-native';
+import { SafeAreaView, StatusBar, StyleSheet } from 'react-native';
 import AIResponseGenerator from './src/components/AIResponseGenerator';
+import AIImageGenerator from './src/components/AIImageGenerator';
+import colors from './src/utils/colors';
 
 const App = () => {
   return (
     <SafeAreaView style={styles.container}>
-      <AIResponseGenerator />
+      <StatusBar
+        barStyle="dark-content"
+        backgroundColor={colors.background}
+      />
+      <AIImageGenerator />
     </SafeAreaView>
   );
 };
