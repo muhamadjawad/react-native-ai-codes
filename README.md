@@ -10,7 +10,12 @@ Collection of ready-to-use AI components for React Native apps.
    - Chat history with timestamps  
    - Simple copy-paste implementation  
 
-2. *(More components coming soon...)*
+
+2. **AI Image Generator**
+    <img src="src/assets/aiImageGeneratorSS.jpg" width="200" alt="AI Response Screenshot">  
+    - Stability AI/Replicate API integration
+    - One-tap image saving to gallery
+    - Customizable prompt templates
 
 ## Quick Start
 
